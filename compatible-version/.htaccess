@@ -1,0 +1,607 @@
+# Kverawat Apache Server Config Compatible v1.0.0 | MIT License
+# https://github.com/kverawat/htaccess/Compatible
+
+# Apache Server Configs v2.15.0 | MIT License
+# Apache Server Configs v4.0.0 | MIT License
+# https://github.com/h5bp/server-configs-apache/blob/2.15.0/dist/.htaccess
+# https://github.com/h5bp/server-configs-apache/blob/4.0.0/dist/.htaccess
+
+# -------------------------------------------------------------------------------------------------------
+# REWRITE | Redirect URL ในเงื่อนไขที่เราต้องการ http, https, www, non www
+# -------------------------------------------------------------------------------------------------------
+<IfModule mod_rewrite.c>
+
+    RewriteEngine On
+
+    # มีทั้งหมด 4 Options ให้เลือกอย่างใดอย่างหนึ่งตามที่ต้องการ
+
+    # -------------------------------------------------------------------------------------------------------
+    # 🟠 OPTION # 1 | Redirect HTTP to HTTPS and Force non www to www
+    # -------------------------------------------------------------------------------------------------------
+    # วิธีนี้จะทำให้เมื่อผู้เยี่ยมชมเว็บไซต์ ไม่มี www จะใส่ www ให้อัตโนมัติ
+    # และหากเข้าใช้งานแบบ http จะทำการเปลี่ยนเป็น https ให้อัตโนมัติ
+    # Force  http://domain.com        ===>    https://www.domain.com  (Not work if you not buy SSL)
+    # Force  http://www.domain.com    ===>    https://www.domain.com  (Not work if you not buy SSL)
+    # Force  http://www.domain.com    ===>    https://www.domain.com  (Not work if you not buy SSL)
+
+    # 1.1) Rule ที่ใช้สำหรับ force www (Redirect to www version)
+    # -------------------------------------------------------------
+    # กำหนดให้ Rule ที่อยู่ใต้ Cond ไม่ต้องทำงาน ถ้าพบว่าเป็น localhost Rule ด้านล่างนี้ จะทำงานกรณีไม่ใช่ localhost เท่านั้น
+    RewriteCond %{HTTP_HOST} !=localhost
+    RewriteCond %{HTTP_HOST} !=127.0.0.1
+    RewriteCond %{REMOTE_ADDR} !=127.0.0.1
+    RewriteCond %{REMOTE_ADDR} !=::1
+
+    # ทำการ redirect force www คือให้มี www เช่น https://www หรือ http://www
+    # กำหนดให้ Rule ที่อยู่ใต้ cond นี้ทำงาน ถ้า URL ที่รับเข้ามาไม่มี www
+    RewriteCond %{HTTP_HOST} !^www\.
+    RewriteRule ^(.*)$ https://www.%{HTTP_HOST}/$1 [R=301,L]
+
+    # 1.2) Rule ที่ใช้สำหรับ force https (Redirect to https version)
+    # -------------------------------------------------------------
+    # กำหนดให้ Rule ที่อยู่ใต้ Cond ไม่ต้องทำงาน ถ้าพบว่าเป็น localhost ถ้าไม่ใช่ Host จริง Rule ด้านล่างนี้ ไม่ต้องทำงาน
+    RewriteCond %{HTTP_HOST} !=localhost
+    RewriteCond %{HTTP_HOST} !=127.0.0.1
+    RewriteCond %{REMOTE_ADDR} !=127.0.0.1
+    RewriteCond %{REMOTE_ADDR} !=::1
+
+    # ทำการ redirect http to https คือให้มี https เท่านั้น ดังนั้นถ้ารับค่า http ธรรมดาก็จะกลายเป็น https
+    # กำหนดให้ Rule ที่อยู่ใต้ Cond นี้ทำงาน ถ้า URL ที่รับเข้ามาไม่มี https
+    RewriteCond %{HTTPS} off
+    RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+
+    # -------------------------------------------------------------------------------------------------------
+    # 🟠 OPTION # 2 | Redirect HTTP to HTTPS and Force www to non www
+    # -------------------------------------------------------------------------------------------------------
+    # วิธีนี้จะทำให้เมื่อผู้เยี่ยมชมเว็บไซต์ ที่มี www จะเอา www ออกไปให้อัตโนมัติ
+    # และหากเข้าใช้งานแบบ http จะทำการเปลี่ยนเป็น https ให้อัตโนมัติ
+    # Force  http://domain.com        ===>    https://domain.com  (Not work if you not buy SSL)
+    # Force  http://www.domain.com    ===>    https://domain.com  (Not work if you not buy SSL)
+    # Force  https://www.domain.com   ===>    https://domain.com  (Not work if you not buy SSL)
+
+    # Rule ที่ใช้สำหรับ force https (Redirect to https version)
+    # -------------------------------------------------------------
+    # กำหนดให้ Rule ที่อยู่ใต้ Cond ไม่ต้องทำงาน ถ้าพบว่าเป็น localhost Rule ด้านล่างนี้ จะทำงานกรณีไม่ใช่ localhost เท่านั้น
+    # RewriteCond %{HTTP_HOST} !=localhost
+    # RewriteCond %{HTTP_HOST} !=127.0.0.1
+    # RewriteCond %{REMOTE_ADDR} !=127.0.0.1
+    # RewriteCond %{REMOTE_ADDR} !=::1
+
+    # ทำการ redirect http to https คือให้มี https เท่านั้น ดังนั้นถ้ารับค่า http ธรรมดาก็จะกลายเป็น https
+    # กำหนดให้ Rule ที่อยู่ใต้ Cond นี้ทำงาน ถ้า URL ที่รับเข้ามาไม่มี https
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+
+    # -------------------------------------------------------------------------------------------------------
+    # 🟠 OPTION # 3 | Force non www to www for domain non-SSL (http)
+    # -------------------------------------------------------------------------------------------------------
+    # วิธีนี้จะทำให้เมื่อผู้เยี่ยมชมเว็บไซต์ ไม่มี www จะใส่ www ให้อัตโนมัติ
+    # และหากเข้าใช้งานแบบ https จะทำการเปลี่ยนเป็น http ให้อัตโนมัติ
+    # เหมาะสำหรับโดเมนใหม่ที่ยังไม่มี SSL
+    # เหมาะสำหรับโดเมนที่มี SSL แล้ว แต่ SSL มีปัญหาชั่วคราวทำให้ใช้ https ไม่ได้ เลยอยากแสดง URL ที่เป็น http
+    # Force  http://domain.com        ===>    http://www.domain.com
+    # Force  https://domain.com       ===>    http://www.domain.com  (Not work if you not buy SSL)
+    # Force  https://www.domain.com   ===>    http://www.domain.com  (Not work if you not buy SSL)
+
+    # Rule ที่ใช้สำหรับ force www (Redirect to www version)
+    # -------------------------------------------------------------
+    # กำหนดให้ Rule ที่อยู่ใต้ Cond ไม่ต้องทำงาน ถ้าพบว่าเป็น localhost Rule ด้านล่างนี้ จะทำงานกรณีไม่ใช่ localhost เท่านั้น
+    # RewriteCond %{HTTP_HOST} !=localhost
+    # RewriteCond %{HTTP_HOST} !=127.0.0.1
+    # RewriteCond %{REMOTE_ADDR} !=127.0.0.1
+    # RewriteCond %{REMOTE_ADDR} !=::1
+
+    # ทำการ redirect force www คือให้มี www เช่น https://www หรือ http://www
+    # RewriteCond %{HTTPS} on
+    # RewriteRule ^ http://www.%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+
+    # -------------------------------------------------------------------------------------------------------
+    # 🟠 OPTION # 4 | Force www to non www for domain non-SSL (http)
+    # -------------------------------------------------------------------------------------------------------
+    # วิธีนี้จะทำให้เมื่อผู้เยี่ยมชมเว็บไซต์ ที่มี www จะเอา www ออกไปให้อัตโนมัติ
+    # และหากเข้าใช้งานแบบ https จะทำการเปลี่ยนเป็น http ให้อัตโนมัติ
+    # เหมาะสำหรับโดเมนใหม่ที่ยังไม่มี SSL
+    # เหมาะสำหรับโดเมนที่มี SSL แล้ว แต่ SSL มีปัญหาชั่วคราวทำให้ใช้ https ไม่ได้ เลยอยากแสดง URL ที่เป็น http
+    # Force  http://www.domain.com    ===>    http://domain.com
+    # Force  https://domain.com       ===>    http://domain.com  (Not work if you not buy SSL)
+    # Force  https://www.domain.com   ===>    http://domain.com  (Not work if you not buy SSL)
+
+    # Rule ที่ใช้สำหรับ force www (Redirect to www version)
+    # -------------------------------------------------------------
+    # กำหนดให้ Rule ที่อยู่ใต้ Cond ไม่ต้องทำงาน ถ้าพบว่าเป็น localhost Rule ด้านล่างนี้ จะทำงานกรณีไม่ใช่ localhost เท่านั้น
+    # RewriteCond %{HTTP_HOST} !=localhost
+    # RewriteCond %{HTTP_HOST} !=127.0.0.1
+    # RewriteCond %{REMOTE_ADDR} !=127.0.0.1
+    # RewriteCond %{REMOTE_ADDR} !=::1
+
+    # ทำการ redirect force non www คือให้ไม่มี www เช่น https://domain หรือ http://domain
+    # RewriteCond %{HTTPS} on
+    # RewriteRule ^ http://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+</IfModule>
+
+# -------------------------------------------------------------------------------------------------------
+# ERRORS | Custom error messages
+# -------------------------------------------------------------------------------------------------------
+# กรณีที่เกิดข้อผิดพลาด ให้แจ้งกลับไปที่ไคลเอนต์ถึงสาเหตุของข้อผิดพลาด ตามไฟล์ที่เรากำหนดขึ้นเองตามชนิดของ error
+# ErrorDocument 400 /errors/400.html
+# ErrorDocument 401 /errors/401.html
+# ErrorDocument 403 /errors/403.html
+# ErrorDocument 404 /errors/404.html
+# ErrorDocument 500 /errors/500.html
+
+# -------------------------------------------------------------------------------------------------------
+# ERRORS | Error prevention
+# -------------------------------------------------------------------------------------------------------
+# ปิดการใช้งานการจับคู่รูปแบบตามชื่อไฟล์ เพื่อไม่ให้ Apache ส่ง error 404 จากไฟล์ที่เขียนใหม่ที่ไม่มีไดเร็กทอรีชื่อเดียวกัน
+Options -MultiViews
+
+# -------------------------------------------------------------------------------------------------------
+# INTERNET EXPLORER | Document modes
+# -------------------------------------------------------------------------------------------------------
+<IfModule mod_headers.c>
+    Header set X-UA-Compatible "IE=edge"
+    <FilesMatch "\.(appcache|atom|bbaw|bmp|crx|css|cur|eot|f4[abpv]|flv|geojson|gif|htc|ic[os]|jpe?g|m?js|json(ld)?|m4[av]|manifest|map|markdown|md|mp4|oex|og[agv]|opus|otf|pdf|png|rdf|rss|safariextz|svgz?|swf|topojson|tt[cf]|txt|vcard|vcf|vtt|webapp|web[mp]|webmanifest|woff2?|xloc|xml|xpi)$">
+        Header unset X-UA-Compatible
+    </FilesMatch>
+</IfModule>
+
+# -------------------------------------------------------------------------------------------------------
+# MEDIA TYPES
+# -------------------------------------------------------------------------------------------------------
+# ให้บริการทรัพยากรด้วยประเภทสื่อที่เหมาะสม (ที่เรารู้จักกันดีในชื่อที่เรียกว่า MIME types)
+<IfModule mod_mime.c>
+
+    # Data interchange
+    AddType application/atom+xml                        atom
+    AddType application/json                            json map topojson
+    AddType application/ld+json                         jsonld
+    AddType application/rss+xml                         rss
+    AddType application/geo+json                        geojson
+    AddType application/vnd.geo+json                    geojson
+    AddType application/rdf+xml                         rdf
+    AddType application/xml                             rdf xml
+
+    # JavaScript
+    AddType text/javascript                             js mjs
+
+    # Manifest files
+    AddType application/manifest+json                   webmanifest
+    AddType application/x-web-app-manifest+json         webapp
+    AddType text/cache-manifest                         appcache
+
+    # Media files
+    AddType audio/mp4                                   f4a f4b m4a
+    AddType audio/ogg                                   oga ogg opus
+    AddType image/bmp                                   bmp
+    AddType image/svg+xml                               svg svgz
+    AddType image/webp                                  webp
+    AddType video/mp4                                   f4v f4p m4v mp4
+    AddType video/ogg                                   ogv
+    AddType video/webm                                  webm
+    AddType video/x-flv                                 flv
+    AddType image/x-icon                                cur ico
+
+    # WebAssembly
+    AddType application/wasm                            wasm
+
+    # Web fonts
+    AddType font/woff                                   woff
+    AddType font/woff2                                  woff2
+    AddType application/vnd.ms-fontobject               eot
+    AddType font/ttf                                    ttf
+    AddType font/collection                             ttc
+    AddType font/otf                                    otf
+
+    # Other
+    AddType application/octet-stream                    safariextz
+    AddType application/x-bb-appworld                   bbaw
+    AddType application/x-chrome-extension              crx
+    AddType application/x-opera-extension               oex
+    AddType application/x-xpinstall                     xpi
+    AddType text/calendar                               ics
+    AddType text/markdown                               markdown md
+    AddType text/vcard                                  vcard vcf
+    AddType text/vnd.rim.location.xloc                  xloc
+    AddType text/vtt                                    vtt
+    AddType text/x-component                            htc
+
+</IfModule>
+
+# -------------------------------------------------------------------------------------------------------
+# CHARACTER ENCODINGS
+# -------------------------------------------------------------------------------------------------------
+# กำหนดให้ charset ของ `text/html` หรือ `text/plain` เป็น `UTF-8`
+# สำคัญมาก เป็นเรื่องของการรองรับภาษาไทยไม่ให้แสดงตัวอักษรต่างดาว
+AddDefaultCharset utf-8
+
+# กำหนดให้ charset ของ media ด้านล่างนี้ทั้งหมด เป็น `UTF-8`
+# สำคัญมาก เป็นเรื่องของการรองรับภาษาไทยไม่ให้แสดงตัวอักษรต่างดาว
+<IfModule mod_mime.c>
+    AddCharset utf-8 .atom \
+                     .bbaw \
+                     .css \
+                     .geojson \
+                     .htc \
+                     .ics \
+                     .js \
+                     .json \
+                     .jsonld \
+                     .manifest \
+                     .map \
+                     .markdown \
+                     .md \
+                     .mjs \
+                     .rdf \
+                     .rss \
+                     .topojson \
+                     .vtt \
+                     .vcard \
+                     .vcf \
+                     .webapp \
+                     .webmanifest \
+                     .xloc \
+                     .xml
+</IfModule>
+
+# -------------------------------------------------------------------------------------------------------
+# SECURITY | File access | Block access to directories without a default document.
+# -------------------------------------------------------------------------------------------------------
+<IfModule mod_autoindex.c>
+    Options -Indexes
+</IfModule>
+
+# -------------------------------------------------------------------------------------------------------
+# SECURITY | File access | Block access to all hidden files and directories such as directories .git .svn
+# -------------------------------------------------------------------------------------------------------
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} "!(^|/)\.well-known/([^./]+./?)+$" [NC]
+    RewriteCond %{SCRIPT_FILENAME} -d [OR]
+    RewriteCond %{SCRIPT_FILENAME} -f
+    RewriteRule "(^|/)\." - [F]
+</IfModule>
+
+# -------------------------------------------------------------------------------------------------------
+# SECURITY | File access | Block access to files that can expose sensitive information.
+# -------------------------------------------------------------------------------------------------------
+<FilesMatch "(^#.*#|\.(bak|conf|dist|fla|in[ci]|log|orig|psd|sh|sql|sw[op])|~)$">
+    # Apache < 2.3
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+        Satisfy All
+    </IfModule>
+    # Apache ≥ 2.3
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+</FilesMatch>
+
+# -------------------------------------------------------------------------------------------------------
+# SECURITY | Reducing MIME type security risks
+# -------------------------------------------------------------------------------------------------------
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+</IfModule>
+
+# -------------------------------------------------------------------------------------------------------
+# SECURITY | Server-side technology information
+# -------------------------------------------------------------------------------------------------------
+<IfModule mod_headers.c>
+    Header unset X-Powered-By
+    Header always unset X-Powered-By
+</IfModule>
+
+# -------------------------------------------------------------------------------------------------------
+# SECURITY | Server software information
+# -------------------------------------------------------------------------------------------------------
+ServerSignature Off
+
+# -------------------------------------------------------------------------------------------------------
+# SECURITY | Turn on IE8-IE9 XSS prevention tools
+# -------------------------------------------------------------------------------------------------------
+<IfModule mod_headers.c>
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# -------------------------------------------------------------------------------------------------------
+# SECURITY | Prevent SQL Injection
+# -------------------------------------------------------------------------------------------------------
+# การป้องกัน SQL Injection เราค้นหาเอา code มาเพิ่มเอง - ทดลองแล้วป้องกันได้จริง OK OK OK
+# Credit : https://shane.kinsch.com/security/htaccess-rules-help-protect-sql-injections/
+# ทดสอบได้ที่ https://www.c-sharpcorner.com/article/sql-injection-through-query-string-and-its-prevention-mechanism/
+# ทดสอบได้ที่ https://www.acunetix.com/blog/articles/exploiting-sql-injection-example/
+<IfModule mod_rewrite.c>
+    # Enable rewrite engine
+    RewriteEngine On
+
+    # Block suspicious request methods
+    RewriteCond %{REQUEST_METHOD} ^(HEAD|TRACE|DELETE|TRACK|DEBUG) [NC]
+    RewriteRule ^(.*)$ - [F,L]
+
+    # Block suspicious user agents and requests
+    RewriteCond %{HTTP_USER_AGENT} (libwww-perl|wget|python|nikto|curl|scan|java|winhttp|clshttp|loader) [NC,OR]
+    RewriteCond %{HTTP_USER_AGENT} (<|>|'|%0A|%0D|%27|%3C|%3E|%00) [NC,OR]
+    RewriteCond %{HTTP_USER_AGENT} (;|<|>|'|"|\)|\(|%0A|%0D|%22|%27|%28|%3C|%3E|%00).*(libwww-perl|wget|python|nikto|curl|scan|java|winhttp|HTTrack|clshttp|archiver|loader|email|harvest|extract|grab|miner) [NC,OR]
+    RewriteCond %{THE_REQUEST} \?\ HTTP/ [NC,OR]
+    RewriteCond %{THE_REQUEST} \/\*\ HTTP/ [NC,OR]
+    RewriteCond %{THE_REQUEST} etc/passwd [NC,OR]
+    RewriteCond %{THE_REQUEST} cgi-bin [NC,OR]
+    RewriteCond %{THE_REQUEST} (%0A|%0D) [NC,OR]
+
+    # Block MySQL injections, RFI, base64, etc.
+    RewriteCond %{QUERY_STRING} [a-zA-Z0-9_]=http:// [OR]
+    RewriteCond %{QUERY_STRING} [a-zA-Z0-9_]=http%3A%2F%2F [OR]
+    RewriteCond %{QUERY_STRING} [a-zA-Z0-9_]=(\.\.//?)+ [OR]
+    RewriteCond %{QUERY_STRING} [a-zA-Z0-9_]=/([a-z0-9_.]//?)+ [NC,OR]
+    RewriteCond %{QUERY_STRING} \=PHP[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12} [NC,OR]
+    RewriteCond %{QUERY_STRING} (\.\./|\.\.) [OR]
+    RewriteCond %{QUERY_STRING} ftp\: [NC,OR]
+    RewriteCond %{QUERY_STRING} http\: [NC,OR]
+    RewriteCond %{QUERY_STRING} https\: [NC,OR]
+    RewriteCond %{QUERY_STRING} \=\|w\| [NC,OR]
+    RewriteCond %{QUERY_STRING} ^(.*)/self/(.*)$ [NC,OR]
+    RewriteCond %{QUERY_STRING} ^(.*)cPath=http://(.*)$ [NC,OR]
+    RewriteCond %{QUERY_STRING} (\<|%3C).*script.*(\>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} (<|%3C)([^s]*s)+cript.*(>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} (\<|%3C).*iframe.*(\>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} (<|%3C)([^i]*i)+frame.*(>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} base64_encode.*\(.*\) [NC,OR]
+    RewriteCond %{QUERY_STRING} base64_(en|de)code[^(]*\([^)]*\) [NC,OR]
+    RewriteCond %{QUERY_STRING} GLOBALS(=|\[|\%[0-9A-Z]{0,2}) [OR]
+    RewriteCond %{QUERY_STRING} _REQUEST(=|\[|\%[0-9A-Z]{0,2}) [OR]
+    RewriteCond %{QUERY_STRING} ^.*(\[|\]|\(|\)|<|>).* [NC,OR]
+    RewriteCond %{QUERY_STRING} (NULL|OUTFILE|LOAD_FILE) [OR]
+    RewriteCond %{QUERY_STRING} (\./|\../|\.../)+(motd|etc|bin) [NC,OR]
+    RewriteCond %{QUERY_STRING} (localhost|loopback|127\.0\.0\.1) [NC,OR]
+    RewriteCond %{QUERY_STRING} (<|>|'|%0A|%0D|%27|%3C|%3E|%00) [NC,OR]
+    RewriteCond %{QUERY_STRING} concat[^\(]*\( [NC,OR]
+    RewriteCond %{QUERY_STRING} union([^s]*s)+elect [NC,OR]
+    RewriteCond %{QUERY_STRING} union([^a]*a)+ll([^s]*s)+elect [NC,OR]
+    RewriteCond %{QUERY_STRING} (;|<|>|'|"|\)|%0A|%0D|%22|%27|%3C|%3E|%00).*(/\*|union|select|insert|drop|delete|update|cast|create|char|convert|alter|declare|order|script|set|md5|benchmark|encode) [NC,OR]
+
+    # PHP-CGI Vulnerability
+    RewriteCond %{QUERY_STRING} ^(%2d|\-)[^=]+$ [NC,OR]
+
+    #proc/self/environ? no way!
+    RewriteCond %{QUERY_STRING} proc\/self\/environ [NC,OR]
+
+    RewriteCond %{QUERY_STRING} (sp_executesql) [NC]
+    RewriteRule ^(.*)$ - [F,L]
+
+</IfModule>
+
+# -------------------------------------------------------------------------------------------------------
+# WEB PERFORMANCE | Compression
+# -------------------------------------------------------------------------------------------------------
+<IfModule mod_deflate.c>
+
+    # บีบอัดไฟล์ให้เป็นแบบ gzip,deflate
+    <IfModule mod_setenvif.c>
+        <IfModule mod_headers.c>
+            SetEnvIfNoCase ^(Accept-EncodXng|X-cept-Encoding|X{15}|~{15}|-{15})$ ^((gzip|deflate)\s*,?\s*)+|[X~-]{4,13}$ HAVE_Accept-Encoding
+            RequestHeader append Accept-Encoding "gzip,deflate" env=HAVE_Accept-Encoding
+        </IfModule>
+    </IfModule>
+
+    # บีบอัดเอาต์พุต ที่กำหนดด้วย media types ตามด้านล่างนี้
+    <IfModule mod_filter.c>
+        AddOutputFilterByType DEFLATE "application/atom+xml" \
+                                      "application/javascript" \
+                                      "application/json" \
+                                      "application/ld+json" \
+                                      "application/manifest+json" \
+                                      "application/rdf+xml" \
+                                      "application/rss+xml" \
+                                      "application/schema+json" \
+                                      "application/geo+json" \
+                                      "application/vnd.geo+json" \
+                                      "application/wasm" \
+                                      "application/vnd.ms-fontobject" \
+                                      "application/x-font-ttf" \
+                                      "application/x-javascript" \
+                                      "application/x-web-app-manifest+json" \
+                                      "application/xhtml+xml" \
+                                      "application/xml" \
+                                      "font/collection" \
+                                      "font/eot" \
+                                      "font/opentype" \
+                                      "font/otf" \
+                                      "font/ttf" \
+                                      "image/bmp" \
+                                      "image/svg+xml" \
+                                      "image/vnd.microsoft.icon" \
+                                      "image/x-icon" \
+                                      "text/cache-manifest" \
+                                      "text/calendar" \
+                                      "text/css" \
+                                      "text/html" \
+                                      "text/javascript" \
+                                      "text/plain" \
+                                      "text/markdown" \
+                                      "text/vcard" \
+                                      "text/vnd.rim.location.xloc" \
+                                      "text/vtt" \
+                                      "text/x-component" \
+                                      "text/x-cross-domain-policy" \
+                                      "text/xml"
+    </IfModule>
+
+    # Map นามสกุลไฟล์ต่อไปนี้กับ encoding type
+    <IfModule mod_mime.c>
+        AddEncoding gzip              svgz
+    </IfModule>
+</IfModule>
+
+# -------------------------------------------------------------------------------------------------------
+# WEB PERFORMANCE | Unset ETags
+# -------------------------------------------------------------------------------------------------------
+# ไม่ต้องส่ง HTTP response header ชื่อ `ETags` เพราะไม่จำเป็น
+<IfModule mod_headers.c>
+    Header unset ETag
+</IfModule>
+
+FileETag None
+
+# -------------------------------------------------------------------------------------------------------
+# WEB PERFORMANCE | Cache Expiration
+# -------------------------------------------------------------------------------------------------------
+# กำหนดระยะเวลาที่ต้องการ cache หรือกำหนดวันหมดอายุ
+<IfModule mod_expires.c>
+    ExpiresActive on
+    ExpiresDefault                                      "access plus 1 month"
+
+    # CSS
+    ExpiresByType text/css                              "access plus 1 year"
+
+    # Data interchange
+    ExpiresByType application/atom+xml                  "access plus 1 hour"
+    ExpiresByType application/rdf+xml                   "access plus 1 hour"
+    ExpiresByType application/rss+xml                   "access plus 1 hour"
+    ExpiresByType application/json                      "access plus 0 seconds"
+    ExpiresByType application/ld+json                   "access plus 0 seconds"
+    ExpiresByType application/schema+json               "access plus 0 seconds"
+    ExpiresByType application/geo+json                  "access plus 0 seconds"
+    ExpiresByType application/vnd.geo+json              "access plus 0 seconds"
+    ExpiresByType application/xml                       "access plus 0 seconds"
+    ExpiresByType text/calendar                         "access plus 0 seconds"
+    ExpiresByType text/xml                              "access plus 0 seconds"
+
+    # Favicon (cannot be renamed!) and cursor images
+    ExpiresByType image/vnd.microsoft.icon              "access plus 1 week"
+    ExpiresByType image/x-icon                          "access plus 1 week"
+
+    # HTML
+    ExpiresByType text/html                             "access plus 0 seconds"
+
+    # JavaScript
+    ExpiresByType application/javascript                "access plus 1 year"
+    ExpiresByType application/x-javascript              "access plus 1 year"
+    ExpiresByType text/javascript                       "access plus 1 year"
+
+    # Manifest files
+    ExpiresByType application/manifest+json             "access plus 1 week"
+    ExpiresByType application/x-web-app-manifest+json   "access plus 0 seconds"
+    ExpiresByType text/cache-manifest                   "access plus 0 seconds"
+
+    # Markdown
+    ExpiresByType text/markdown                         "access plus 0 seconds"
+
+    # Media files
+    ExpiresByType audio/ogg                             "access plus 1 month"
+    ExpiresByType image/apng                            "access plus 1 month"
+    ExpiresByType image/bmp                             "access plus 1 month"
+    ExpiresByType image/gif                             "access plus 1 month"
+    ExpiresByType image/jpeg                            "access plus 1 month"
+    ExpiresByType image/png                             "access plus 1 month"
+    ExpiresByType image/svg+xml                         "access plus 1 month"
+    ExpiresByType image/webp                            "access plus 1 month"
+    ExpiresByType video/mp4                             "access plus 1 month"
+    ExpiresByType video/ogg                             "access plus 1 month"
+    ExpiresByType video/webm                            "access plus 1 month"
+
+    # WebAssembly
+
+    ExpiresByType application/wasm                      "access plus 1 year"
+
+    # Web fonts
+    ExpiresByType font/collection                       "access plus 1 month"
+    ExpiresByType application/vnd.ms-fontobject         "access plus 1 month"
+    ExpiresByType font/eot                              "access plus 1 month"
+    ExpiresByType font/opentype                         "access plus 1 month"
+    ExpiresByType font/otf                              "access plus 1 month"
+    ExpiresByType application/x-font-ttf                "access plus 1 month"
+    ExpiresByType font/ttf                              "access plus 1 month"
+    ExpiresByType application/font-woff                 "access plus 1 month"
+    ExpiresByType application/x-font-woff               "access plus 1 month"
+    ExpiresByType font/woff                             "access plus 1 month"
+    ExpiresByType application/font-woff2                "access plus 1 month"
+    ExpiresByType font/woff2                            "access plus 1 month"
+
+    # Other
+    ExpiresByType text/x-cross-domain-policy            "access plus 1 week"
+
+</IfModule>
+
+
+# #######################################################################################################
+# # CONFIGURATING PHP SETTING                                                                           #
+# #######################################################################################################
+
+# -------------------------------------------------------------------------------------------------------
+# PHP SETTING | Fixed Charset & Fixed TimeZone
+# -------------------------------------------------------------------------------------------------------
+# สำคัญมาก เป็นเรื่องของการรองรับภาษาไทยไม่ให้แสดงตัวอักษรต่างดาว และการกำหนดเวลามาตรฐานเป็นเวลาประเทศไทย
+# แนะนำให้ใช้ค่าตามที่กำหนดด้านล่างนี้ทุก Website (ไม่ต้องแก้ไข)
+php_value default_charset UTF-8
+SetEnv TZ Asia/Bangkok
+
+# -------------------------------------------------------------------------------------------------------
+# PHP SETTING | Output Buffer
+# -------------------------------------------------------------------------------------------------------
+# เรื่องของการใช้ Buffer เพื่อแก้ปัญหา Warning: Cannot Modify Header Information – Header Already Sent
+# แนะนำให้ใช้ค่าตามที่กำหนดด้านล่างนี้ทุก Website (ไม่ต้องแก้ไข)
+php_value output_buffering 4096
+
+# -------------------------------------------------------------------------------------------------------
+# PHP SETTING | Security Configuration
+# -------------------------------------------------------------------------------------------------------
+# สำคัญมาก เป็นเรื่องของความปลอดภัย
+# แนะนำให้ใช้ค่าตามที่กำหนดด้านล่างนี้ทุก Website (ไม่ต้องแก้ไข)
+php_value session.use_cookies 1
+php_value session.use_only_cookies 1
+php_value session.use_trans_sid 0
+php_value session.name "MYFRAMEWORKSESSID"
+php_value session.gc_divisor 1000
+php_value session.gc_probability 1
+
+# -------------------------------------------------------------------------------------------------------
+# PHP SETTING | Security Configuration (⚠️ Option สำหรับ PHP 5.2 เท่านั้น)
+# -------------------------------------------------------------------------------------------------------
+# ถ้าเราใช้ PHP version > 5.2 ให้ Comment 2 บรรทัดด้านล่าง เพราะ PHP version > 5.2 ไม่มี 2 คำสั่งด้านล่างนี้
+php_flag magic_quotes_gpc off
+php_flag register_globals off
+
+# -------------------------------------------------------------------------------------------------------
+# PHP SETTING | Security Configuration (⚠️ Option สำหรับ PHP 5 เท่านั้น)
+# -------------------------------------------------------------------------------------------------------
+# ถ้าเราใช้ PHP version 7 ให้ Comment 2 บรรทัดด้านล่าง เพราะ PHP version 7 ไม่มี 2 คำสั่งด้านล่างนี้
+php_value session.hash_bits_per_character 5
+php_value session.hash_function 1
+
+# -------------------------------------------------------------------------------------------------------
+# PHP SETTING | Security Configuration (⚠️ Option สำหรับ PHP 7 เท่านั้น)
+# -------------------------------------------------------------------------------------------------------
+# ถ้าเราใช้ PHP version 5 ให้ Comment 2 บรรทัดด้านล่าง เพราะ PHP version 5 ไม่มี 2 คำสั่งด้านล่างนี้
+# php_value session.sid_bits_per_character 5
+# php_value session.sid_length 32
+
+# -------------------------------------------------------------------------------------------------------
+# PHP SETTING | Resource Limits Related to Hosting Performance
+# -------------------------------------------------------------------------------------------------------
+# สำคัญมาก เป็นเรื่องการกำหนดหน่วยความจำ, เวลาที่ยอมให้ประมวลผล, ปริมาณไฟล์ที่ยอมให้ upload, ขนาดไฟล์ที่ยอมให้ upload
+# | memory_limit        | ให้ใช้ 128M สำหรับ Share Host และใช้ 256M หรือ 512M เมื่อใช้กับ localhost
+# | max_execution_time  | ให้ใช้ 90 สำหรับ Share Host และใช้ 36000 (10 ชั่วโมง) เมื่อใช้กับ localhost
+# | max_input_time      | ให้ใช้ 60 หรือ -1 ก็ได้ สำหรับ Share Host และใช้ -1 เมื่อใช้กับ localhost (-1 คือ Unlimited)
+# | upload_max_filesize | ให้ใช้ 64M สำหรับ Share Host และใช้ 400M หรือ 2G เมื่อใช้กับ localhost
+# | post_max_size       | ให้ใช้ 64M สำหรับ Share Host และใช้ 400M หรือ 2G เมื่อใช้กับ localhost
+# แนะนำให้กำหนดค่าตามลักษณะงานของ Website และตามรูปแบบของ Hosting
+# ตัวเลขด้านล่าง แก้ไขได้ ตามความเหมาะสม
+php_value memory_limit 512M
+php_value max_execution_time 36000
+php_value max_input_time -1
+php_value upload_max_filesize 2G
+php_value post_max_size 2G
+
+# -------------------------------------------------------------------------------------------------------
+# PHP SETTING | Session Timeout
+# -------------------------------------------------------------------------------------------------------
+# สำคัญมาก เป็นเรื่องการกำหนดเวลาหมดอายุของ session
+# | session.gc_maxlifetime | ให้ใช้ 1440 (24 นาที) แต่ถ้าคิดว่าสมาชิก login ต้องอยู่ในระบบนานแน่ ให้ใช้ 7200 (2 ชั่วโมง)
+# แนะนำให้กำหนดค่าตามลักษณะงานของ Website ถ้าเป็นพวก E-Learning ให้ใช้ 7200 แต่ถ้าปกติให้ใช้ 1440 ก็พอ
+# ตัวเลขด้านล่าง แก้ไขได้ ตามความเหมาะสม
+php_value session.gc_maxlifetime 7200
